@@ -1,12 +1,8 @@
-# SnAC: Sense and Act (React is Dead) ⚡️
+# SnAC: Sense and Act ⚡️
 
 Passive analytical pipelines are a liability. This repository contains the code for the **SnAC Architecture**, demonstrating how to inject a serverless reasoning engine directly into an Apache Kafka stream. 
 
 By combining Kafka, Google's Gemini 1.5 Flash, chDB (for localized memory), and ClickHouse, this pipeline doesn't just move data—it *reasons* about unstructured payloads and *acts* on threats in real-time before they ever hit the disk.
-
-[Image of The SnAC Architecture showing Kafka streaming to Google Cloud Run with Gemini and chDB, persisting to ClickHouse]
-
----
 
 ## ⏱ Quickstart: Run this in under 2 minutes
 
