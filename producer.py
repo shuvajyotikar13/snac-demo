@@ -3,7 +3,7 @@ import time
 import random
 from confluent_kafka import Producer
 
-KAFKA_BROKER = 'localhost:9092'
+KAFKA_BROKER = '127.0.0.1:9092'
 TOPIC = 'raw_security_logs'
 
 producer = Producer({'bootstrap.servers': KAFKA_BROKER})
