@@ -3,6 +3,7 @@ import logging
 import os
 import pandas as pd
 from datetime import datetime
+from chdb import session
 
 import chdb
 from confluent_kafka import Consumer, KafkaException
@@ -25,9 +26,14 @@ logger = logging.getLogger("snac_agent")
 # INITIALIZATION: Gemini & ClickHouse
 # ==========================================
 aiplatform.init(project=GCP_PROJECT, location=GCP_REGION)
-gemini_model = GenerativeModel("gemini-1.5-flash-001")
+gemini_model = GenerativeModel("gemini-2.5-flash")
 
-ch_client = clickhouse_driver.Client('localhost')
+ch_client = clickhouse_driver.Client(
+    host='localhost', 
+    user='default', 
+    password='snacdemo', 
+    port=19000
+)
 ch_client.execute('''
     CREATE TABLE IF NOT EXISTS triage_intelligence (
         triage_time DateTime,
@@ -43,15 +49,19 @@ ch_client.execute('''
 # LOCALIZED STATE: chDB
 # ==========================================
 logger.info("Initializing chDB localized cache...")
-chdb.query("CREATE DATABASE IF NOT EXISTS localized_cache;")
-chdb.query("CREATE TABLE IF NOT EXISTS localized_cache.malicious_ips (ip String, last_seen DateTime) ENGINE = MergeTree() ORDER BY ip;")
 
+# 1. Instantiate a stateful session for the agent's memory
+local_reflex = session.Session()
+
+# 2. Execute queries against THIS session so state is retained
+local_reflex.query("CREATE DATABASE IF NOT EXISTS localized_cache;")
+local_reflex.query("CREATE TABLE IF NOT EXISTS localized_cache.malicious_ips (ip String, last_seen DateTime) ENGINE = MergeTree() ORDER BY ip;")
 def is_ip_blocked(ip):
-    result = chdb.query(f"SELECT count() FROM localized_cache.malicious_ips WHERE ip = '{ip}'", "DataFrame")
+    result = local_reflex.query(f"SELECT count() FROM localized_cache.malicious_ips WHERE ip = '{ip}'", "DataFrame")
     return int(result.iloc[0, 0]) > 0
 
 def block_ip_locally(ip):
-    chdb.query(f"INSERT INTO localized_cache.malicious_ips VALUES ('{ip}', now())")
+    local_reflex.query(f"INSERT INTO localized_cache.malicious_ips VALUES ('{ip}', now())")
 
 # ==========================================
 # CONSUMER LOOP
@@ -63,7 +73,7 @@ Output ONLY valid JSON with this schema:
 """
 
 consumer = Consumer({
-    'bootstrap.servers': 'localhost:9092',
+    'bootstrap.servers': '127.0.0.1:9092',
     'group.id': "snac_triage_group",
     'auto.offset.reset': 'earliest'
 })
