@@ -1,0 +1,5 @@
+confluent-kafka==2.3.0
+chdb==2.0.2
+clickhouse-driver==0.2.6
+google-cloud-aiplatform==1.43.0
+pandas==2.2.1
